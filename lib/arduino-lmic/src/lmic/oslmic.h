@@ -18,6 +18,7 @@
 // You should not, however, change the lmic.[hc]
 
 #include "config.h"
+#include "Arduino.h"
 #include "osticks.h"
 #include <stdint.h>
 #include <stdio.h>
@@ -118,7 +119,7 @@ inline int32_t table_get_s4(const int32_t *table, size_t index) {
 
 // Declare a table
 #define CONST_TABLE(type, name) const type RESOLVE_TABLE(name)
-#define lmic_printf printf
+#define lmic_printf LMIC_PRINTF_TO.printf
 #endif
 
 #if LMIC_DEBUG_LEVEL > 0

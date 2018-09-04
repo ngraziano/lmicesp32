@@ -15,7 +15,7 @@
 #ifndef _lmic_h_
 #define _lmic_h_
 
-#include "../aes/aes.h"
+#include "../aes/aesLora.h"
 #include "lorabase.h"
 #include "oslmic.h"
 #include "radio.h"
@@ -338,7 +338,7 @@ public:
   uint8_t dataLen = 0;   // 0 no data or zero length data, >0 byte count of data
   uint8_t frame[MAX_LEN_FRAME];
 
-  Aes aes;
+  AesLora aes;
 
 private:
   // Channel scheduling

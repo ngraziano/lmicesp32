@@ -1,7 +1,9 @@
 
-#ifndef __aes_h__
-#define __aes_h__
+#ifndef __aesLora_h__
+#define __aesLora_h__
 #include "../lmic/config.h"
+#include "mbedtls/aes.h"
+
 #include <stdint.h>
 
 // ======================================================================
@@ -11,7 +13,7 @@ void lmic_aes_encrypt(uint8_t *data, const uint8_t *key);
 
 #define AES_BLCK_SIZE 16
 
-class Aes {
+class AesLora {
 private:
   uint8_t AESDevKey[16];
   // network session key

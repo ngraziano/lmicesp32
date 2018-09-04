@@ -11,7 +11,6 @@
 
 //! \file
 #include "lmic.h"
-#include "../aes/aes.h"
 #include "bufferpack.h"
 #include "radio.h"
 #include <algorithm>

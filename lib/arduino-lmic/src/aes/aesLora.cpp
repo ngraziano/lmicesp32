@@ -12,21 +12,21 @@
  * NO WARRANTY OF ANY KIND IS PROVIDED.
  *******************************************************************************/
 
-#include "aes.h"
+#include "aesLora.h"
 #include "../lmic/bufferpack.h"
 #include "../lmic/lorabase.h"
 #include <algorithm>
 
-void Aes::setDevKey(uint8_t key[16]) { std::copy(key, key + 16, AESDevKey); }
-void Aes::setNetworkSessionKey(uint8_t key[16]) {
+void AesLora::setDevKey(uint8_t key[16]) { std::copy(key, key + 16, AESDevKey); }
+void AesLora::setNetworkSessionKey(uint8_t key[16]) {
   std::copy(key, key + 16, nwkSKey);
 }
-void Aes::setApplicationSessionKey(uint8_t key[16]) {
+void AesLora::setApplicationSessionKey(uint8_t key[16]) {
   std::copy(key, key + 16, appSKey);
 }
 
 // Get B0 value in buf
-void Aes::micB0(uint32_t devaddr, uint32_t seqno, uint8_t dndir, uint8_t len,
+void AesLora::micB0(uint32_t devaddr, uint32_t seqno, uint8_t dndir, uint8_t len,
                 uint8_t buf[AES_BLCK_SIZE]) {
   buf[0] = 0x49;
   buf[1] = 0;
@@ -44,7 +44,7 @@ void Aes::micB0(uint32_t devaddr, uint32_t seqno, uint8_t dndir, uint8_t len,
  * Verify MIC
  * len : total length (MIC included)
  */
-bool Aes::verifyMic(uint32_t devaddr, uint32_t seqno, uint8_t dndir,
+bool AesLora::verifyMic(uint32_t devaddr, uint32_t seqno, uint8_t dndir,
                     uint8_t *pdu, uint8_t len) const {
   uint8_t buf[AES_BLCK_SIZE];
   uint8_t lenWithoutMic = len - MIC_LEN;
@@ -57,7 +57,7 @@ bool Aes::verifyMic(uint32_t devaddr, uint32_t seqno, uint8_t dndir,
  * Append MIC
  * len : total length (MIC included)
  */
-void Aes::appendMic(uint32_t devaddr, uint32_t seqno, uint8_t dndir,
+void AesLora::appendMic(uint32_t devaddr, uint32_t seqno, uint8_t dndir,
                     uint8_t *pdu, uint8_t len) const {
   uint8_t buf[AES_BLCK_SIZE];
   uint8_t lenWithoutMic = len - MIC_LEN;
@@ -71,7 +71,7 @@ void Aes::appendMic(uint32_t devaddr, uint32_t seqno, uint8_t dndir,
  * Append join MIC
  * len : total length (MIC included)
  */
-void Aes::appendMic0(uint8_t *pdu, uint8_t len) const {
+void AesLora::appendMic0(uint8_t *pdu, uint8_t len) const {
   uint8_t buf[AES_BLCK_SIZE] = {0};
   uint8_t lenWithoutMic = len - MIC_LEN;
   aes_cmac(pdu, lenWithoutMic, false, AESDevKey, buf);
@@ -83,14 +83,14 @@ void Aes::appendMic0(uint8_t *pdu, uint8_t len) const {
  * Verify join MIC
  * len : total length (MIC included)
  */
-bool Aes::verifyMic0(uint8_t *pdu, uint8_t len) const {
+bool AesLora::verifyMic0(uint8_t *pdu, uint8_t len) const {
   uint8_t buf[AES_BLCK_SIZE] = {0};
   uint8_t lenWithoutMic = len - MIC_LEN;
   aes_cmac(pdu, lenWithoutMic, 0, AESDevKey, buf);
   return std::equal(buf, buf + MIC_LEN, pdu + lenWithoutMic);
 }
 
-void Aes::encrypt(uint8_t *pdu, uint8_t len) const {
+void AesLora::encrypt(uint8_t *pdu, uint8_t len) const {
   // TODO: Check / handle when len is not a multiple of 16
   for (uint8_t i = 0; i < len; i += 16)
     lmic_aes_encrypt(pdu + i, AESDevKey);
@@ -99,7 +99,7 @@ void Aes::encrypt(uint8_t *pdu, uint8_t len) const {
 /**
  *  Encrypt data frame payload.
  */
-void Aes::framePayloadEncryption(uint8_t port, uint32_t devaddr, uint32_t seqno,
+void AesLora::framePayloadEncryption(uint8_t port, uint32_t devaddr, uint32_t seqno,
                                  uint8_t dndir, uint8_t *payload,
                                  uint8_t len) const {
   auto key = port == 0 ? nwkSKey : appSKey;
@@ -132,7 +132,7 @@ void Aes::framePayloadEncryption(uint8_t port, uint32_t devaddr, uint32_t seqno,
 }
 
 // Extract session keys
-void Aes::sessKeys(uint16_t devnonce, const uint8_t *artnonce) {
+void AesLora::sessKeys(uint16_t devnonce, const uint8_t *artnonce) {
   std::fill(nwkSKey, nwkSKey + 16, 0);
   nwkSKey[0] = 0x01;
   std::copy(artnonce, artnonce + LEN_ARTNONCE + LEN_NETID, nwkSKey + 1);
@@ -160,7 +160,7 @@ static void shift_left(uint8_t *buf, uint8_t len) {
 // result is prepended to the message. result is used as working memory,
 // it can be set to "B0" for MIC. The CMAC result is returned in result
 // as well.
-void Aes::aes_cmac(const uint8_t *buf, uint8_t len, bool prepend_aux,
+void AesLora::aes_cmac(const uint8_t *buf, uint8_t len, bool prepend_aux,
                    const uint8_t key[16], uint8_t result[AES_BLCK_SIZE]) {
   if (prepend_aux)
     lmic_aes_encrypt(result, key);

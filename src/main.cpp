@@ -4,9 +4,11 @@
 #include <lmic.h>
 #include <hal/hal.h>
 #include <SPI.h>
-#include <LowPower.h>
 
+
+#define DEVICE_TESTESP32
 #include "lorakeys.h"
+
 
 void do_send();
 
@@ -28,7 +30,7 @@ void getDevEui(uint8_t *buf) { memcpy_P(buf, DEVEUI, 8); }
 // The key shown here is the semtech default key.
 // defined in lorakeys.h
 
-uint16_t data[2] = {};
+uint8_t data[4] = {};
 
 OsJob sendjob;
 
@@ -42,10 +44,10 @@ const unsigned int BAUDRATE = 19200;
 
 // Pin mapping
 const lmic_pinmap lmic_pins = {
-    .nss = 10,
+    .nss = 18,
     .rxtx = LMIC_UNUSED_PIN,
     .rst = 14,
-    .dio = {4, 3},
+    .dio = {26, 33},
 };
 
 void onEvent(ev_t ev)
@@ -125,54 +127,20 @@ void do_send()
     }
     else
     {
-        const uint8_t pinCmd = 6;
-        pinMode(pinCmd, OUTPUT);
-        digitalWrite(pinCmd, 1);
-        delay(100);
-        // battery
-        data[0] = analogRead(A2);
 
-        if (data[0] > (int)(4.1 * 1024 / 6.6))
-        {
-            // use battery...
-            nosleep = true;
-        }
-        else
-        {
-            nosleep = false;
-        }
-
-        // humidity
-        data[1] = analogRead(A1);
-        if (!nosleep)
-            digitalWrite(pinCmd, 0);
+        int16_t temp = temperatureRead() * 10;
+        data[0] = 1;
+        data[1] = 0x67;
+        data[2] = temp>>8;
+        data[3] = temp & 0xFF;
 
         // Prepare upstream data transmission at the next possible time.
-        LMIC.setTxData2(1, (uint8_t *)data, 4, false);
+        LMIC.setTxData2(1, data, 4, false);
         PRINT_DEBUG_1("Packet queued");
     }
     // Next TX is scheduled after TX_COMPLETE event.
 }
 
-// lmic_pins.dio[0]  = 4 => PCINT20
-// lmic_pins.dio[1]  = 3 => PCINT19
-// PCI2 PCINT[23:16]
-// PCI1 PCINT[14:8]
-// PCI0 PCINT[7:0]
-
-ISR(PCINT2_vect)
-{
-    // one of pins D8 to D13 has changed
-    // store time, will be check in OSS.runloopOnce()
-    hal_store_trigger();
-}
-
-void pciSetup(byte pin)
-{
-    *digitalPinToPCMSK(pin) |= bit(digitalPinToPCMSKbit(pin)); // enable pin
-    PCIFR |= bit(digitalPinToPCICRbit(pin));                   // clear any outstanding interrupt
-    PCICR |= bit(digitalPinToPCICRbit(pin));                   // enable interrupt for the group
-}
 
 void setup()
 {
@@ -181,8 +149,7 @@ void setup()
     Serial.println(F("Starting"));
 #endif
 
-    pciSetup(lmic_pins.dio[0]);
-    pciSetup(lmic_pins.dio[1]);
+    delay(10000);
 
     // LMIC init
     os_init();
@@ -212,73 +179,12 @@ void setup()
     do_send();
 }
 
-void powersave(OsDeltaTime const &maxTime)
-{
-    OsDeltaTime duration_selected;
-    period_t period_selected;
-    // these value are base on test
-    if (maxTime > OsDeltaTime::from_ms(8700))
-    {
-        duration_selected = OsDeltaTime::from_ms(8600);
-        period_selected = SLEEP_8S;
-    }
-    else if (maxTime > OsDeltaTime::from_ms(4600))
-    {
-        duration_selected = OsDeltaTime::from_ms(4300);
-        period_selected = SLEEP_4S;
-    }
-    else if (maxTime > OsDeltaTime::from_ms(2600))
-    {
-        duration_selected = OsDeltaTime::from_ms(2150);
-        period_selected = SLEEP_2S;
-    }
-    else if (maxTime > OsDeltaTime::from_ms(1500))
-    {
-        duration_selected = OsDeltaTime::from_ms(1100);
-        period_selected = SLEEP_1S;
-    }
-    else if (maxTime > OsDeltaTime::from_ms(800))
-    {
-        duration_selected = OsDeltaTime::from_ms(510);
-        period_selected = SLEEP_500MS;
-    }
-    else if (maxTime > OsDeltaTime::from_ms(500))
-    {
-        duration_selected = OsDeltaTime::from_ms(260);
-        period_selected = SLEEP_250MS;
-    }
-    else
-    {
-        return;
-    }
-
-#if LMIC_DEBUG_LEVEL > 0
-    Serial.print(os_getTime().tick());
-    Serial.print(": Sleep (ostick) :");
-    Serial.print(duration_selected.to_ms());
-    Serial.print("x");
-    Serial.println(maxTime / duration_selected);
-    Serial.flush();
-#endif
-
-    for (uint16_t nbsleep = maxTime / duration_selected; nbsleep > 0; nbsleep--)
-    {
-
-        LowPower.powerDown(period_selected, ADC_OFF, BOD_OFF);
-        hal_add_time_in_sleep(duration_selected);
-    }
-
-#if LMIC_DEBUG_LEVEL > 0
-    Serial.print(os_getTime().tick());
-    Serial.println(": wakeup");
-#endif
-}
 
 void loop()
 {
     OsDeltaTime to_wait = OSS.runloopOnce();
     if (!nosleep && to_wait > 0 && hal_is_sleep_allow())
     {
-        powersave(to_wait);
+       // powersave(to_wait);
     }
 }
