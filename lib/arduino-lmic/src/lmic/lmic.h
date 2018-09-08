@@ -330,7 +330,6 @@ private:
   uint8_t dn2Ans;
 #endif
 
-public:
   // Public part of MAC state
   uint8_t txCnt = 0;
   uint8_t txrxFlags = 0; // transaction flags (TX-RX combo)
@@ -338,7 +337,13 @@ public:
   uint8_t dataLen = 0;   // 0 no data or zero length data, >0 byte count of data
   uint8_t frame[MAX_LEN_FRAME];
 
+public:
   AesLora aes;
+  uint8_t getTxRxFlags() const { return txrxFlags; };
+  uint8_t getDataLen() const { return dataLen; };
+  const uint8_t *getData() const { return frame + dataBeg; };
+  uint32_t getSequenceNumberUp() const { return seqnoUp; };
+  uint32_t getSequenceNumberDown() const { return seqnoDn; };
 
 private:
   // Channel scheduling
