@@ -4,11 +4,13 @@
 #include <lmic.h>
 #include <hal/hal.h>
 #include <SPI.h>
-
+#include "SSD1306.h"
 
 #define DEVICE_TESTESP32
 #include "lorakeys.h"
 
+#define RSTOLED  16
+#define Light  25
 
 void do_send();
 
@@ -32,6 +34,9 @@ void getDevEui(uint8_t *buf) { memcpy_P(buf, DEVEUI, 8); }
 
 uint8_t data[4] = {};
 
+//SSD1306  display(0x3c, SDA, SCL);
+SSD1306  display(0x3c, 4, 15);
+
 OsJob sendjob;
 
 bool nosleep = false;
@@ -49,6 +54,13 @@ const lmic_pinmap lmic_pins = {
     .rst = 14,
     .dio = {26, 33},
 };
+
+void showState(const char* state) {
+    display.clear();
+    display.drawString(5, 5, state);
+    display.display();
+}
+
 
 void onEvent(ev_t ev)
 {
@@ -68,9 +80,13 @@ void onEvent(ev_t ev)
         break;
     case EV_JOINING:
         PRINT_DEBUG_2("EV_JOINING");
+        showState("JOINING");
+
         break;
     case EV_JOINED:
         PRINT_DEBUG_2("EV_JOINED");
+        showState("JOINED");
+
         // LMIC.setDrTxpow(DR_SF9, KEEP_TXPOW);
         break;
     case EV_RFU1:
@@ -78,13 +94,16 @@ void onEvent(ev_t ev)
         break;
     case EV_JOIN_FAILED:
         PRINT_DEBUG_2("EV_JOIN_FAILED");
+        showState("JOIN FAIL");
+
         break;
     case EV_REJOIN_FAILED:
         PRINT_DEBUG_2("EV_REJOIN_FAILED");
         break;
-        break;
     case EV_TXCOMPLETE:
         PRINT_DEBUG_2("EV_TXCOMPLETE (includes waiting for RX windows)");
+        showState("TX COMP");
+
         if (LMIC.txrxFlags & TXRX_ACK)
             PRINT_DEBUG_2("Received ack");
         if (LMIC.dataLen)
@@ -106,6 +125,7 @@ void onEvent(ev_t ev)
         break;
     case EV_LINK_DEAD:
         PRINT_DEBUG_2("EV_LINK_DEAD");
+
         break;
     case EV_LINK_ALIVE:
         PRINT_DEBUG_2("EV_LINK_ALIVE");
@@ -148,6 +168,17 @@ void setup()
     Serial.begin(BAUDRATE);
     Serial.println(F("Starting"));
 #endif
+    pinMode(25, OUTPUT);
+    pinMode(RSTOLED,OUTPUT);
+    delay(50); 
+    digitalWrite(RSTOLED, LOW);
+    delay(50);
+    digitalWrite(RSTOLED, HIGH);
+    delay(50);
+    display.init();
+    display.flipScreenVertically();
+    display.setFont(ArialMT_Plain_10);
+    showState("Starting");
 
     delay(10000);
 
