@@ -15,18 +15,21 @@ void lmic_aes_encrypt(uint8_t *data, const uint8_t *key);
 
 class AesLora {
 private:
-  uint8_t AESDevKey[16];
+  mbedtls_aes_context AESDevCtx;
   // network session key
-  uint8_t nwkSKey[16];
+  mbedtls_aes_context nwkSCtx;
   // application session key
-  uint8_t appSKey[16];
+  mbedtls_aes_context appSCtx;
 
-  static void micB0(uint32_t devaddr, uint32_t seqno, uint8_t dndir,
+  void micB0(uint32_t devaddr, uint32_t seqno, uint8_t dndir,
                     uint8_t len, uint8_t buf[16]);
-  static void aes_cmac(const uint8_t *buf, uint8_t len, bool prepend_aux,
-                       const uint8_t key[16], uint8_t result[16]);
+  void aes_cmac(const uint8_t *buf, uint8_t len, bool prepend_aux,
+                       esp_aes_context *ctx, uint8_t result[16]);
 
 public:
+  AesLora();
+  ~AesLora();
+
   /* Set device key
    * Key is copied.
    */
@@ -34,16 +37,16 @@ public:
   void setNetworkSessionKey(uint8_t key[16]);
   void setApplicationSessionKey(uint8_t key[16]);
   bool verifyMic(uint32_t devaddr, uint32_t seqno, uint8_t dndir, uint8_t *pdu,
-                 uint8_t len) const;
-  bool verifyMic0(uint8_t *pdu, uint8_t len) const;
+                 uint8_t len) ;
+  bool verifyMic0(uint8_t *pdu, uint8_t len) ;
   void framePayloadEncryption(uint8_t port, uint32_t devaddr, uint32_t seqno,
                               uint8_t dndir, uint8_t *payload,
-                              uint8_t len) const;
-  void encrypt(uint8_t *pdu, uint8_t len) const;
+                              uint8_t len) ;
+  void encrypt(uint8_t *pdu, uint8_t len) ;
   void sessKeys(uint16_t devnonce, const uint8_t *artnonce);
   void appendMic(uint32_t devaddr, uint32_t seqno, uint8_t dndir, uint8_t *pdu,
-                 uint8_t len) const;
-  void appendMic0(uint8_t *pdu, uint8_t len) const;
+                 uint8_t len) ;
+  void appendMic0(uint8_t *pdu, uint8_t len) ;
 };
 
 #endif // __aes_h__

@@ -17,17 +17,31 @@
 #include "../lmic/lorabase.h"
 #include <algorithm>
 
-void AesLora::setDevKey(uint8_t key[16]) { std::copy(key, key + 16, AESDevKey); }
+AesLora::AesLora() {
+  mbedtls_aes_init(&AESDevCtx);
+  mbedtls_aes_init(&nwkSCtx);
+  mbedtls_aes_init(&appSCtx);
+}
+
+AesLora::~AesLora() {
+  mbedtls_aes_free(&AESDevCtx);
+  mbedtls_aes_free(&nwkSCtx);
+  mbedtls_aes_free(&appSCtx);
+}
+
+void AesLora::setDevKey(uint8_t key[16]) {
+  mbedtls_aes_setkey_enc(&AESDevCtx, key, 128);
+}
 void AesLora::setNetworkSessionKey(uint8_t key[16]) {
-  std::copy(key, key + 16, nwkSKey);
+  mbedtls_aes_setkey_enc(&nwkSCtx, key, 128);
 }
 void AesLora::setApplicationSessionKey(uint8_t key[16]) {
-  std::copy(key, key + 16, appSKey);
+  mbedtls_aes_setkey_enc(&appSCtx, key, 128);
 }
 
 // Get B0 value in buf
-void AesLora::micB0(uint32_t devaddr, uint32_t seqno, uint8_t dndir, uint8_t len,
-                uint8_t buf[AES_BLCK_SIZE]) {
+void AesLora::micB0(uint32_t devaddr, uint32_t seqno, uint8_t dndir,
+                    uint8_t len, uint8_t buf[AES_BLCK_SIZE]) {
   buf[0] = 0x49;
   buf[1] = 0;
   buf[2] = 0;
@@ -45,11 +59,11 @@ void AesLora::micB0(uint32_t devaddr, uint32_t seqno, uint8_t dndir, uint8_t len
  * len : total length (MIC included)
  */
 bool AesLora::verifyMic(uint32_t devaddr, uint32_t seqno, uint8_t dndir,
-                    uint8_t *pdu, uint8_t len) const {
+                        uint8_t *pdu, uint8_t len) {
   uint8_t buf[AES_BLCK_SIZE];
   uint8_t lenWithoutMic = len - MIC_LEN;
   micB0(devaddr, seqno, dndir, lenWithoutMic, buf);
-  aes_cmac(pdu, lenWithoutMic, true, nwkSKey, buf);
+  aes_cmac(pdu, lenWithoutMic, true, &nwkSCtx, buf);
   return std::equal(buf, buf + MIC_LEN, pdu + lenWithoutMic);
 }
 
@@ -58,11 +72,11 @@ bool AesLora::verifyMic(uint32_t devaddr, uint32_t seqno, uint8_t dndir,
  * len : total length (MIC included)
  */
 void AesLora::appendMic(uint32_t devaddr, uint32_t seqno, uint8_t dndir,
-                    uint8_t *pdu, uint8_t len) const {
+                        uint8_t *pdu, uint8_t len) {
   uint8_t buf[AES_BLCK_SIZE];
   uint8_t lenWithoutMic = len - MIC_LEN;
   micB0(devaddr, seqno, dndir, lenWithoutMic, buf);
-  aes_cmac(pdu, lenWithoutMic, true, nwkSKey, buf);
+  aes_cmac(pdu, lenWithoutMic, true, &nwkSCtx, buf);
   // Copy MIC at the end
   std::copy(buf, buf + MIC_LEN, pdu + lenWithoutMic);
 }
@@ -71,10 +85,10 @@ void AesLora::appendMic(uint32_t devaddr, uint32_t seqno, uint8_t dndir,
  * Append join MIC
  * len : total length (MIC included)
  */
-void AesLora::appendMic0(uint8_t *pdu, uint8_t len) const {
+void AesLora::appendMic0(uint8_t *pdu, uint8_t len) {
   uint8_t buf[AES_BLCK_SIZE] = {0};
   uint8_t lenWithoutMic = len - MIC_LEN;
-  aes_cmac(pdu, lenWithoutMic, false, AESDevKey, buf);
+  aes_cmac(pdu, lenWithoutMic, false, &AESDevCtx, buf);
   // Copy MIC0 at the end
   std::copy(buf, buf + MIC_LEN, pdu + lenWithoutMic);
 }
@@ -83,26 +97,27 @@ void AesLora::appendMic0(uint8_t *pdu, uint8_t len) const {
  * Verify join MIC
  * len : total length (MIC included)
  */
-bool AesLora::verifyMic0(uint8_t *pdu, uint8_t len) const {
+bool AesLora::verifyMic0(uint8_t *pdu, uint8_t len) {
   uint8_t buf[AES_BLCK_SIZE] = {0};
   uint8_t lenWithoutMic = len - MIC_LEN;
-  aes_cmac(pdu, lenWithoutMic, 0, AESDevKey, buf);
+  aes_cmac(pdu, lenWithoutMic, 0, &AESDevCtx, buf);
   return std::equal(buf, buf + MIC_LEN, pdu + lenWithoutMic);
 }
 
-void AesLora::encrypt(uint8_t *pdu, uint8_t len) const {
+void AesLora::encrypt(uint8_t *pdu, uint8_t len) {
   // TODO: Check / handle when len is not a multiple of 16
-  for (uint8_t i = 0; i < len; i += 16)
-    lmic_aes_encrypt(pdu + i, AESDevKey);
+  for (uint8_t i = 0; i < len; i += 16) {
+    mbedtls_aes_crypt_ecb(&AESDevCtx, ESP_AES_ENCRYPT, pdu + i, pdu + i);
+  }
 }
 
 /**
  *  Encrypt data frame payload.
  */
-void AesLora::framePayloadEncryption(uint8_t port, uint32_t devaddr, uint32_t seqno,
-                                 uint8_t dndir, uint8_t *payload,
-                                 uint8_t len) const {
-  auto key = port == 0 ? nwkSKey : appSKey;
+void AesLora::framePayloadEncryption(uint8_t port, uint32_t devaddr,
+                                     uint32_t seqno, uint8_t dndir,
+                                     uint8_t *payload, uint8_t len) {
+  auto ctx = port == 0 ? &nwkSCtx : &appSCtx;
   // Generate
   uint8_t blockAi[AES_BLCK_SIZE];
   blockAi[0] = 1; // mode=cipher
@@ -123,7 +138,7 @@ void AesLora::framePayloadEncryption(uint8_t port, uint32_t devaddr, uint32_t se
     blockAi[15]++;
     // Encrypt the counter block with the selected key
     std::copy(blockAi, blockAi + AES_BLCK_SIZE, blockSi);
-    lmic_aes_encrypt(blockSi, key);
+    mbedtls_aes_crypt_ecb(ctx, ESP_AES_ENCRYPT, blockSi, blockSi);
 
     // Xor the payload with the resulting ciphertext
     for (uint8_t i = 0; i < AES_BLCK_SIZE && len > 0; i++, len--, payload++)
@@ -133,6 +148,8 @@ void AesLora::framePayloadEncryption(uint8_t port, uint32_t devaddr, uint32_t se
 
 // Extract session keys
 void AesLora::sessKeys(uint16_t devnonce, const uint8_t *artnonce) {
+  uint8_t nwkSKey[16];
+  uint8_t appSKey[16];
   std::fill(nwkSKey, nwkSKey + 16, 0);
   nwkSKey[0] = 0x01;
   std::copy(artnonce, artnonce + LEN_ARTNONCE + LEN_NETID, nwkSKey + 1);
@@ -140,8 +157,10 @@ void AesLora::sessKeys(uint16_t devnonce, const uint8_t *artnonce) {
   std::copy(nwkSKey, nwkSKey + 16, appSKey);
   appSKey[0] = 0x02;
 
-  lmic_aes_encrypt(nwkSKey, AESDevKey);
-  lmic_aes_encrypt(appSKey, AESDevKey);
+  mbedtls_aes_crypt_ecb(&AESDevCtx, ESP_AES_ENCRYPT, nwkSKey, nwkSKey);
+  mbedtls_aes_crypt_ecb(&AESDevCtx, ESP_AES_ENCRYPT, appSKey, appSKey);
+  setNetworkSessionKey(nwkSKey);
+  setApplicationSessionKey(appSKey);
 }
 
 // Shift the given buffer left one bit
@@ -161,9 +180,10 @@ static void shift_left(uint8_t *buf, uint8_t len) {
 // it can be set to "B0" for MIC. The CMAC result is returned in result
 // as well.
 void AesLora::aes_cmac(const uint8_t *buf, uint8_t len, bool prepend_aux,
-                   const uint8_t key[16], uint8_t result[AES_BLCK_SIZE]) {
+                       esp_aes_context *ctx, uint8_t result[AES_BLCK_SIZE]) {
+
   if (prepend_aux)
-    lmic_aes_encrypt(result, key);
+    mbedtls_aes_crypt_ecb(ctx, ESP_AES_ENCRYPT, result, result);
 
   while (len > 0) {
     uint8_t need_padding = 0;
@@ -185,7 +205,7 @@ void AesLora::aes_cmac(const uint8_t *buf, uint8_t len, bool prepend_aux,
       // shifts and xor on that.
       uint8_t final_key[16];
       std::fill(final_key, final_key + 16, 0);
-      lmic_aes_encrypt(final_key, key);
+      mbedtls_aes_crypt_ecb(ctx, ESP_AES_ENCRYPT, final_key, final_key);
 
       // Calculate K1
       uint8_t msb = final_key[0] & 0x80;
@@ -206,6 +226,6 @@ void AesLora::aes_cmac(const uint8_t *buf, uint8_t len, bool prepend_aux,
         result[i] ^= final_key[i];
     }
 
-    lmic_aes_encrypt(result, key);
+    mbedtls_aes_crypt_ecb(ctx, ESP_AES_ENCRYPT, result, result);
   }
 }
