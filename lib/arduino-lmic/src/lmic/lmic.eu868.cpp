@@ -35,7 +35,7 @@ CONST_TABLE(uint8_t, _DR2RPS_CRC)
       ILLEGAL_RPS};
 
 static CONST_TABLE(int8_t, TXPOWLEVELS)[] = {16, 14, 12, 10, 8, 6, 4, 2,
-                                             0,  0,  0,  0, 0, 0, 0, 0};
+                                             0,  0,  0,  0,  0, 0, 0, 0};
 
 int8_t LmicEu868::pow2dBm(uint8_t mcmd_ladr_p1) {
   return TABLE_GET_S1(TXPOWLEVELS, (mcmd_ladr_p1 & MCMD_LADR_POW_MASK) >>
@@ -335,7 +335,8 @@ bool LmicEu868::nextJoinState(uint8_t &txChnl, uint8_t &txCnt, dr_t &datarate,
                   // Otherwise: randomize join (street lamp case):
                   // SF12:255, SF11:127, .., SF7:8secs
                   : DNW2_SAFETY_ZONE + OsDeltaTime::rnd_delay(255 >> datarate));
-  PRINT_DEBUG_1 (" Next available : %li , Choosen %li", time.tick(), txend.tick());
+  PRINT_DEBUG_1(" Next available : %li , Choosen %li", time.tick(),
+                txend.tick());
 #if LMIC_DEBUG_LEVEL > 1
   if (failed)
     lmic_printf("%lu: Join failed\n", os_getTime());
@@ -346,5 +347,35 @@ bool LmicEu868::nextJoinState(uint8_t &txChnl, uint8_t &txCnt, dr_t &datarate,
   return !failed;
 }
 #endif // !DISABLE_JOIN
+
+size_t LmicEu868::saveState(uint8_t *buffer) {
+
+  size_t sizeBand = MAX_BANDS * sizeof(band_t);
+  memcpy(buffer, bands, sizeBand);
+  buffer += sizeBand;
+  size_t sizeDetail = MAX_CHANNELS * sizeof(ChannelDetail);
+  memcpy(buffer, channels, sizeBand);
+  buffer += sizeDetail;
+  *buffer = channelMap >> 8;
+  buffer++;
+  *buffer = channelMap;
+
+  return sizeBand + sizeDetail + 2;
+}
+
+size_t LmicEu868::loadState(uint8_t *buffer) {
+
+  size_t sizeBand = MAX_BANDS * sizeof(band_t);
+  memcpy(bands, buffer, sizeBand);
+  buffer += sizeBand;
+  size_t sizeDetail = MAX_CHANNELS * sizeof(ChannelDetail);
+  memcpy(channels, buffer, sizeBand);
+  buffer += sizeDetail;
+  channelMap = *buffer << 8;
+  buffer++;
+  channelMap += *buffer;
+
+  return sizeBand + sizeDetail + 2;
+}
 
 #endif

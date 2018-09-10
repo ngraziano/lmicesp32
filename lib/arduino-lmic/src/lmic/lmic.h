@@ -156,6 +156,8 @@ public:
   bool nextJoinState(uint8_t &txChnl, uint8_t &txCnt, dr_t &datarate,
                      OsTime &txend);
 #endif
+  size_t saveState(uint8_t *buffer);
+  size_t loadState(uint8_t *buffer);
 
 private:
   band_t bands[MAX_BANDS]{};
@@ -330,7 +332,7 @@ private:
   uint8_t dn2Ans;
 #endif
 
-  // Public part of MAC state
+  // part of MAC state
   uint8_t txCnt = 0;
   uint8_t txrxFlags = 0; // transaction flags (TX-RX combo)
   uint8_t dataBeg = 0;   // 0 or start of data (dataBeg-1 is port)
@@ -434,6 +436,9 @@ public:
 
   // for radio to wakeup processing.
   void nextTask();
+
+  size_t saveState(uint8_t *buffer);
+  size_t loadState(uint8_t *buffer);
 
   Lmic();
 };

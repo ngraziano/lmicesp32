@@ -29,6 +29,24 @@ AesLora::~AesLora() {
   mbedtls_aes_free(&appSCtx);
 }
 
+size_t AesLora::saveState(uint8_t *buffer) {
+  uint8_t *orig = buffer;
+  memcpy(buffer, &nwkSCtx, sizeof(nwkSCtx));
+  buffer += sizeof(nwkSCtx);
+  memcpy(buffer, &appSCtx, sizeof(appSCtx));
+  buffer += sizeof(appSCtx);
+  return buffer - orig;
+}
+
+size_t AesLora::loadState(uint8_t *buffer) {
+  uint8_t *orig = buffer;
+  memcpy(&nwkSCtx, buffer, sizeof(nwkSCtx));
+  buffer += sizeof(nwkSCtx);
+  memcpy(&appSCtx, buffer, sizeof(appSCtx));
+  buffer += sizeof(appSCtx);
+  return buffer - orig;
+}
+
 void AesLora::setDevKey(uint8_t key[16]) {
   mbedtls_aes_setkey_enc(&AESDevCtx, key, 128);
 }

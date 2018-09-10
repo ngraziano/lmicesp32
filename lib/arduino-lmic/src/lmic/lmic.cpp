@@ -1133,4 +1133,169 @@ void Lmic::setClockError(uint8_t error) { clockError = error; }
 
 void Lmic::nextTask() { osjob.setRunnable(); }
 
+void pack(uint8_t *&buf, uint8_t val) { *(buf++) = val; }
+
+void pack(uint8_t *&buf, int8_t val) { *(buf++) = val; }
+
+void pack(uint8_t *&buf, bool val) { *(buf++) = val; }
+
+void pack(uint8_t *&buf, uint16_t val) {
+  *(buf++) = val;
+  *(buf++) = val >> 8;
+}
+
+void pack(uint8_t *&buf, uint32_t val) {
+  *(buf++) = val;
+  *(buf++) = val >> 8;
+  *(buf++) = val >> 16;
+  *(buf++) = val >> 24;
+}
+
+void pack(uint8_t *&buf, int32_t val) {
+  *(buf++) = val;
+  *(buf++) = val >> 8;
+  *(buf++) = val >> 16;
+  *(buf++) = val >> 24;
+}
+
+void pack(uint8_t *&buf, OsTime const &val) { pack(buf, val.tick()); }
+
+void pack(uint8_t *&buf, OsDeltaTime const &val) { pack(buf, val.tick()); }
+
+size_t Lmic::saveState(uint8_t *buffer) {
+  uint8_t *orig = buffer;
+  // TODO radio RSSI,SNR
+  pack(buffer, freq);
+  pack(buffer, rps.rawValue);
+  pack(buffer, rxsyms);
+  pack(buffer, dndr);
+  pack(buffer, txpow);
+  pack(buffer, txChnl);
+  pack(buffer, globalDutyRate);
+  pack(buffer, globalDutyAvail);
+  pack(buffer, netid);
+  pack(buffer, opmode);
+  pack(buffer, upRepeat);
+  pack(buffer, adrTxPow);
+  pack(buffer, datarate);
+  pack(buffer, errcr);
+  // pack(buffer,pendTxConf);
+  pack(buffer, devNonce);
+  pack(buffer, devaddr);
+  pack(buffer, seqnoDn);
+  pack(buffer, seqnoUp);
+  pack(buffer, dnConf);
+  pack(buffer, adrAckReq);
+  pack(buffer, rxDelay);
+  // pack(buffer,margin);
+  pack(buffer, ladrAns);
+  pack(buffer, devsAns);
+  pack(buffer, rxTimingSetupAns);
+  pack(buffer, adrEnabled);
+#if !defined(DISABLE_MCMD_DCAP_REQ)
+  pack(buffer, dutyCapAns);
+#endif
+#if !defined(DISABLE_MCMD_SNCH_REQ)
+  // answer set new channel, init afet join.
+  pack(buffer, snchAns);
+#endif
+  pack(buffer, rx1DrOffset);
+  pack(buffer, dn2Dr);
+  pack(buffer, dn2Freq);
+#if !defined(DISABLE_MCMD_DN2P_SET)
+  pack(buffer, dn2Ans);
+#endif
+  // pack(buffer, txCnt);
+  // pack(buffer, txrxFlags);
+  // pack(buffer, dataBeg);
+  // pack(buffer, dataLen);
+  // pack(buffer, frame);
+  buffer += aes.saveState(buffer);
+  buffer += regionLMic.saveState(buffer);
+  PRINT_DEBUG_1("Size save %i", buffer-orig);
+  return buffer - orig;
+}
+
+void unpack(uint8_t *&buf, uint8_t &val) { val = *(buf++); }
+
+void unpack(uint8_t *&buf, int8_t &val) { val = *(buf++); }
+
+void unpack(uint8_t *&buf, bool &val) { val = *(buf++); }
+
+void unpack(uint8_t *&buf, uint16_t &val) { val = *(buf++) + (*(buf++) << 8); }
+
+void unpack(uint8_t *&buf, uint32_t &val) {
+  val = *(buf++) + (*(buf++) << 8) + (*(buf++) << 16) + (*(buf++) << 24);
+}
+
+void unpack(uint8_t *&buf, int32_t &val) {
+  val = *(buf++) + (*(buf++) << 8) + (*(buf++) << 16) + (*(buf++) << 24);
+}
+
+void unpack(uint8_t *&buf, OsTime &val) {
+  uint32_t tick;
+  unpack(buf, tick);
+  val = OsTime(tick);
+}
+
+void unpack(uint8_t *&buf, OsDeltaTime &val) { 
+  int32_t tick;
+  unpack(buf, tick);
+  val = OsDeltaTime(tick);
+ }
+
+size_t Lmic::loadState(uint8_t *buffer) {
+  uint8_t *orig = buffer;
+  // TODO radio RSSI,SNR
+  unpack(buffer, freq);
+  unpack(buffer, rps.rawValue);
+  unpack(buffer, rxsyms);
+  unpack(buffer, dndr);
+  unpack(buffer, txpow);
+  unpack(buffer, txChnl);
+  unpack(buffer, globalDutyRate);
+  unpack(buffer, globalDutyAvail);
+  unpack(buffer, netid);
+  unpack(buffer, opmode);
+  unpack(buffer, upRepeat);
+  unpack(buffer, adrTxPow);
+  unpack(buffer, datarate);
+  unpack(buffer, errcr);
+  // pack(buffer,pendTxConf);
+  unpack(buffer, devNonce);
+  unpack(buffer, devaddr);
+  unpack(buffer, seqnoDn);
+  unpack(buffer, seqnoUp);
+  unpack(buffer, dnConf);
+  unpack(buffer, adrAckReq);
+  unpack(buffer, rxDelay);
+  // unpack(buffer,margin);
+  unpack(buffer, ladrAns);
+  unpack(buffer, devsAns);
+  unpack(buffer, rxTimingSetupAns);
+  unpack(buffer, adrEnabled);
+#if !defined(DISABLE_MCMD_DCAP_REQ)
+  unpack(buffer, dutyCapAns);
+#endif
+#if !defined(DISABLE_MCMD_SNCH_REQ)
+  // answer set new channel, init afet join.
+  unpack(buffer, snchAns);
+#endif
+  unpack(buffer, rx1DrOffset);
+  unpack(buffer, dn2Dr);
+  unpack(buffer, dn2Freq);
+#if !defined(DISABLE_MCMD_DN2P_SET)
+  unpack(buffer, dn2Ans);
+#endif
+  // unpack(buffer, txCnt);
+  // unpack(buffer, txrxFlags);
+  // unpack(buffer, dataBeg);
+  // unpack(buffer, dataLen);
+  // unpack(buffer, frame);
+
+  buffer += aes.loadState(buffer);
+  buffer += regionLMic.loadState(buffer);
+  return buffer - orig;
+}
+
 Lmic::Lmic() : radio(frame, dataLen, txend, rxtime) {}

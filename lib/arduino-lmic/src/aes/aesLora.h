@@ -29,7 +29,8 @@ private:
 public:
   AesLora();
   ~AesLora();
-
+  size_t saveState(uint8_t* buffer);
+  size_t loadState(uint8_t* buffer);
   /* Set device key
    * Key is copied.
    */
