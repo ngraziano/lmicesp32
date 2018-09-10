@@ -94,8 +94,6 @@ void hal_io_check();
  */
 OsTime hal_ticks();
 
-void hal_add_time_in_sleep(OsDeltaTime const &nb_tick);
-
 bool hal_is_sleep_allow();
 
 void hal_allow_sleep();
