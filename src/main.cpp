@@ -36,7 +36,7 @@ SSD1306  display(0x3c, 4, 15);
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const uint32_t TX_INTERVAL = 30 * 1000000;
+const uint32_t TX_INTERVAL = 120 * 1000000;
 
 const unsigned int BAUDRATE = 115200;
 
