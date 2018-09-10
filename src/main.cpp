@@ -26,26 +26,19 @@ void getArtEui(uint8_t *buf) { memcpy_P(buf, APPEUI, 8); }
 // static const uint8_t PROGMEM DEVEUI[8]={ 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 void getDevEui(uint8_t *buf) { memcpy_P(buf, DEVEUI, 8); }
 
-// This key should be in big endian format (or, since it is not really a
-// number but a block of memory, endianness does not really apply). In
-// practice, a key taken from ttnctl can be copied as-is.
-// The key shown here is the semtech default key.
-// defined in lorakeys.h
+// buffer to save current lmic state (size may be reduce)
+RTC_DATA_ATTR uint8_t saveState[300];
 
 uint8_t data[4] = {};
 
-//SSD1306  display(0x3c, SDA, SCL);
+
 SSD1306  display(0x3c, 4, 15);
-
-OsJob sendjob;
-
-bool nosleep = false;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-OsDeltaTime TX_INTERVAL = OsDeltaTime::from_sec(60 * 5);
+const uint32_t TX_INTERVAL = 30 * 1000000;
 
-const unsigned int BAUDRATE = 19200;
+const unsigned int BAUDRATE = 115200;
 
 // Pin mapping
 const lmic_pinmap lmic_pins = {
@@ -57,13 +50,17 @@ const lmic_pinmap lmic_pins = {
 
 void showState(const char* state) {
     display.clear();
-    display.drawString(5, 5, state);
+    display.drawString(0, 0, state);
+    String seq = String(LMIC.getSequenceNumberUp(), HEX);
+    display.drawString(64, 0, seq);
+
     display.display();
 }
 
 
 void onEvent(ev_t ev)
 {
+     size_t lbuf;
     switch (ev)
     {
     case EV_SCAN_TIMEOUT:
@@ -81,7 +78,6 @@ void onEvent(ev_t ev)
     case EV_JOINING:
         PRINT_DEBUG_2("EV_JOINING");
         showState("JOINING");
-
         break;
     case EV_JOINED:
         PRINT_DEBUG_2("EV_JOINED");
@@ -104,14 +100,23 @@ void onEvent(ev_t ev)
         PRINT_DEBUG_2("EV_TXCOMPLETE (includes waiting for RX windows)");
         showState("TX COMP");
 
-        if (LMIC.txrxFlags & TXRX_ACK)
+        if (LMIC.getTxRxFlags() & TXRX_ACK)
             PRINT_DEBUG_2("Received ack");
-        if (LMIC.dataLen)
+        if (LMIC.getDataLen())
         {
             PRINT_DEBUG_2("Received %d  bytes of payload", LMIC.dataLen);
         }
+
+        uint8_t state[300];
+        PRINT_DEBUG_1("Save state");
+
         // Schedule next transmission
-        sendjob.setTimedCallback(os_getTime() + TX_INTERVAL, do_send);
+        lbuf = LMIC.saveState(saveState);
+        PRINT_DEBUG_1(" state save = %i",lbuf);
+
+        // memcpy(saveState, state, 299);
+        //PRINT_DEBUG_1("copy to RTC");
+        ESP.deepSleep(TX_INTERVAL);
         break;
     case EV_LOST_TSYNC:
         PRINT_DEBUG_2("EV_LOST_TSYNC");
@@ -142,8 +147,6 @@ void do_send()
     if (LMIC.getOpMode() & OP_TXRXPEND)
     {
         PRINT_DEBUG_1("OP_TXRXPEND, not sending");
-        // should not happen so reschedule anymway
-        sendjob.setTimedCallback(os_getTime() + TX_INTERVAL, do_send);
     }
     else
     {
@@ -161,14 +164,7 @@ void do_send()
     // Next TX is scheduled after TX_COMPLETE event.
 }
 
-
-void setup()
-{
-#if LMIC_DEBUG_LEVEL > 0
-    Serial.begin(BAUDRATE);
-    Serial.println(F("Starting"));
-#endif
-    pinMode(25, OUTPUT);
+void initOled() {
     pinMode(RSTOLED,OUTPUT);
     delay(50); 
     digitalWrite(RSTOLED, LOW);
@@ -178,35 +174,49 @@ void setup()
     display.init();
     display.flipScreenVertically();
     display.setFont(ArialMT_Plain_10);
-    showState("Starting");
+}
 
-    delay(10000);
+void setup()
+{
+#if LMIC_DEBUG_LEVEL > 0
+    Serial.begin(BAUDRATE);
+    Serial.println(F("Starting"));
+#endif
+//    pinMode(25, OUTPUT);
+    initOled();
+    showState("Starting");
 
     // LMIC init
     os_init();
-
-    // Reset the MAC state. Session and pending data transfers will be discarded.
+    // Reset the MAC state.
     LMIC.reset();
-
     uint8_t buf[16];
     memcpy_P(buf, APPKEY, 16);
     LMIC.aes.setDevKey(buf);
     LMIC.setEventCallBack(onEvent);
     LMIC.setDevEuiCallback(getDevEui);
     LMIC.setArtEuiCallback(getArtEui);
-
-    // set clock error to allow good connection.
+    // set 5% clock error to allow easyer OTAA (even if timing is may not totally correct).
     LMIC.setClockError(MAX_CLOCK_ERROR * 5 / 100);
+    
+    // Use 51 as magic number at the end
+    // maybe a CRC should be better
+    // or detection of reset cause
+    if(saveState[299] == 51) {
+        PRINT_DEBUG_1("Loaded sate");
 
-    // for(int i = 1; i <= 8; i++) LMIC_disableChannel(i);
-    // LMIC_setupChannel(0, 868100000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);
+        LMIC.loadState(saveState);
+        PRINT_DEBUG_1("sate loaded");
+    delay(4000);
 
-    // TTN uses SF9 for its RX2 window.
-    // LMIC.dn2Dr = DR_SF9;
-    // Set data rate and transmit power for uplink (note: txpow seems to be ignored by the library)
-    // LMIC_setDrTxpow(DR_SF9,14);
+    }
+    else {
+        saveState[299] = 51;
+    }
+    
+    PRINT_DEBUG_1("do job");
 
-    // Start job (sending automatically starts OTAA too)
+    // Start job (sending automatically starts OTAA too if first launch)
     do_send();
 }
 
@@ -214,8 +224,4 @@ void setup()
 void loop()
 {
     OsDeltaTime to_wait = OSS.runloopOnce();
-    if (!nosleep && to_wait > 0 && hal_is_sleep_allow())
-    {
-       // powersave(to_wait);
-    }
 }
