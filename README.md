@@ -3,9 +3,9 @@
 * Based on LMIC librairy.
 * Modified to get C++ style.
 * Only class A device (no class B)
-* Add some sleep of arduino board.
+* Add some sleep of esp32 board.
 
-Tested with Arduino Pro Mini and RFM95 on EU868 frequencies.
+Tested with Heltec Board on EU868 frequencies.
 
 ## Usage
 
@@ -42,8 +42,10 @@ In ``main.cpp`` replace the content of ``do_send()`` with the data you want to s
   * ADR_ACK_LIMIT set to 64
   * ADR_ACK_DELAY set to 32
 * Correct set of power for SX1276
+* Use gettimeofday for hal_ticks to survive deep sleep.
+* Add method to store and restore LMIC state in RTC RAM.
+* Use ESP AES function
 
 ## License
 
 Most source files in this repository are made available under the Eclipse Public License v1.0.
-Some of the AES code is available under the LGPL. Refer to each individual source file for more details.
