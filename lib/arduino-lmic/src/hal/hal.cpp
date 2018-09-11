@@ -40,8 +40,6 @@ static void hal_io_init() {
   pinMode(lmic_pins.dio[0], INPUT);
   if (lmic_pins.dio[1] != LMIC_UNUSED_PIN)
     pinMode(lmic_pins.dio[1], INPUT);
-
-
 }
 
 // val == 1  => tx 1
@@ -119,13 +117,13 @@ void hal_allow_sleep() { is_sleep_allow = true; }
 
 void hal_forbid_sleep() { is_sleep_allow = false; }
 
-
 OsTime hal_ticks() {
-  timeval val; 
+  timeval val;
   gettimeofday(&val, nullptr);
-  
-  //uint64_t time = esp_clk_rtc_time() >> US_PER_OSTICK_EXPONENT;
-  return OsTime((val.tv_sec * OSTICKS_PER_SEC) + (val.tv_usec >> US_PER_OSTICK_EXPONENT) );
+
+  // uint64_t time = esp_clk_rtc_time() >> US_PER_OSTICK_EXPONENT;
+  return OsTime((val.tv_sec * OSTICKS_PER_SEC) +
+                (val.tv_usec >> US_PER_OSTICK_EXPONENT));
 }
 
 void hal_waitUntil(OsTime const &time) {
@@ -143,7 +141,6 @@ void hal_wait(OsDeltaTime delta) {
   if (delta > 0)
     delayMicroseconds(delta.to_us());
 }
-
 
 // check and rewind for target time
 bool hal_checkTimer(OsTime const &time) {
@@ -176,37 +173,23 @@ void hal_enableIRQs() {
 
 // -----------------------------------------------------------------------------
 
-
 void hal_init() {
   // configure radio I/O and interrupt handler
   hal_io_init();
   // configure radio SPI
   hal_spi_init();
   // configure timer
-
 }
 
 void hal_init_random() {
-  //esp_random();
-  LMIC.radio.init_random(randbuf);
+  // not init
 }
 
-// return next random byte derived from seed buffer
-// (buf[0] holds index of next byte to be returned)
-uint8_t hal_rand1() {
-  uint8_t i = randbuf[0];
+// use esp random
+uint8_t hal_rand1() { return esp_random() & 0xFF; }
 
-  if (i == 16) {
-    LMIC.aes.encrypt(randbuf, 16); // encrypt seed with any key
-    i = 0;
-  }
-  uint8_t v = randbuf[i++];
-  randbuf[0] = i;
-  return v;
-}
-
-//! Get random number (default impl for uint16_t).
-uint16_t hal_rand2() { return ((uint16_t)((hal_rand1() << 8) | hal_rand1())); }
+// use esp random
+uint16_t hal_rand2() { return esp_random() & 0xFFFF; }
 
 void hal_failed(const char *file, uint16_t line) {
 #if defined(LMIC_FAILURE_TO)
