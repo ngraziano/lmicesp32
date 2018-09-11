@@ -124,7 +124,7 @@ inline int32_t table_get_s4(const int32_t *table, size_t index) {
 
 #if LMIC_DEBUG_LEVEL > 0
 #define PRINT_DEBUG_1(str, ...)                                                \
-  lmic_printf("%lu: " str "\n", os_getTime(), ##__VA_ARGS__)
+  lmic_printf("%u: " str "\n", os_getTime().tick(), ##__VA_ARGS__)
 #else
 #define PRINT_DEBUG_1(str, ...)
 #endif

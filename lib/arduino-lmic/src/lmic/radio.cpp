@@ -388,8 +388,8 @@ static void txlora(uint32_t freq, rps_t rps, int8_t txpow, uint8_t *frame,
   uint8_t sf = rps.sf + 6; // 1 == SF7
   uint8_t bw = rps.bw;
   uint8_t cr = rps.cr;
-  lmic_printf("%lu: TXMODE, freq=%lu, len=%d, SF=%d, BW=%d, CR=4/%d, IH=%d\n",
-              os_getTime(), freq, dataLen, sf,
+  lmic_printf("%u: TXMODE, freq=%u, len=%d, SF=%d, BW=%d, CR=4/%d, IH=%d\n",
+              os_getTime().tick(), freq, dataLen, sf,
               bw == BW125 ? 125 : (bw == BW250 ? 250 : 500),
               cr == CR_4_5 ? 5 : (cr == CR_4_6 ? 6 : (cr == CR_4_7 ? 7 : 8)),
               rps.ih);
@@ -472,7 +472,7 @@ static void rxlora(uint8_t rxmode, uint32_t freq, rps_t rps, uint8_t rxsyms,
     uint8_t bw = rps.bw;
     uint8_t cr = rps.cr;
     lmic_printf(
-        "%lu: %s, freq=%lu, SF=%d, BW=%d, CR=4/%d, IH=%d\n", os_getTime(),
+        "%u: %s, freq=%u, SF=%d, BW=%d, CR=4/%d, IH=%d\n", os_getTime().tick(),
         rxmode == RXMODE_SINGLE
             ? "RXMODE_SINGLE"
             : (rxmode == RXMODE_SCAN ? "RXMODE_SCAN" : "UNKNOWN_RX"),
@@ -601,7 +601,7 @@ void Radio::irq_handler(uint8_t dio, OsTime const &trigger) {
   if (now - trigger < OsDeltaTime::from_sec(1)) {
     now = trigger;
   } else {
-    PRINT_DEBUG_1("Not using interupt trigger %lu", trigger);
+    PRINT_DEBUG_1("Not using interupt trigger %u", trigger.tick());
   }
 
   if ((readReg(RegOpMode) & OPMODE_LORA) != 0) { // LORA modem
@@ -621,7 +621,7 @@ void Radio::irq_handler(uint8_t dio, OsTime const &trigger) {
       if (currentRps.bw == BW125) {
         now -= OsDeltaTime(TABLE_GET_S4(LORA_RXDONE_FIXUP, currentRps.sf));
       }
-      PRINT_DEBUG_1("End RX -  Start RX : %li us ", (now - rxTime).to_us());
+      PRINT_DEBUG_1("End RX -  Start RX : %i us ", (now - rxTime).to_us());
       rxTime = now;
        
       // read the PDU and inform the MAC that we received something

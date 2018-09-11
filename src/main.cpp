@@ -51,8 +51,9 @@ const lmic_pinmap lmic_pins = {
 void showState(const char* state) {
     display.clear();
     display.drawString(0, 0, state);
-    String seq = String(LMIC.getSequenceNumberUp(), HEX);
-    display.drawString(64, 0, seq);
+
+    //String seq = String(esp_random(), HEX);
+    //display.drawString(64, 0, seq);
 
     display.display();
 }
@@ -107,7 +108,6 @@ void onEvent(ev_t ev)
             PRINT_DEBUG_2("Received %d  bytes of payload", LMIC.dataLen);
         }
 
-        uint8_t state[300];
         PRINT_DEBUG_1("Save state");
 
         // Schedule next transmission

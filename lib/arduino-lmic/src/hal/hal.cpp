@@ -187,6 +187,7 @@ void hal_init() {
 }
 
 void hal_init_random() {
+  //esp_random();
   LMIC.radio.init_random(randbuf);
 }
 

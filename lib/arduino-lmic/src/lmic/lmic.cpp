@@ -1140,22 +1140,19 @@ void pack(uint8_t *&buf, int8_t val) { *(buf++) = val; }
 void pack(uint8_t *&buf, bool val) { *(buf++) = val; }
 
 void pack(uint8_t *&buf, uint16_t val) {
-  *(buf++) = val;
-  *(buf++) = val >> 8;
+  *(reinterpret_cast<uint16_t *>(buf))= val;
+  buf += 2;
 }
 
 void pack(uint8_t *&buf, uint32_t val) {
-  *(buf++) = val;
-  *(buf++) = val >> 8;
-  *(buf++) = val >> 16;
-  *(buf++) = val >> 24;
+  *(reinterpret_cast<uint32_t *>(buf))= val;
+  buf += 4;
+ 
 }
 
 void pack(uint8_t *&buf, int32_t val) {
-  *(buf++) = val;
-  *(buf++) = val >> 8;
-  *(buf++) = val >> 16;
-  *(buf++) = val >> 24;
+  *(reinterpret_cast<int32_t *>(buf))= val;
+  buf += 4;
 }
 
 void pack(uint8_t *&buf, OsTime const &val) { pack(buf, val.tick()); }
@@ -1212,7 +1209,7 @@ size_t Lmic::saveState(uint8_t *buffer) {
   // pack(buffer, frame);
   buffer += aes.saveState(buffer);
   buffer += regionLMic.saveState(buffer);
-  PRINT_DEBUG_1("Size save %i", buffer-orig);
+  PRINT_DEBUG_1("Size save %i", buffer - orig);
   return buffer - orig;
 }
 
@@ -1222,14 +1219,19 @@ void unpack(uint8_t *&buf, int8_t &val) { val = *(buf++); }
 
 void unpack(uint8_t *&buf, bool &val) { val = *(buf++); }
 
-void unpack(uint8_t *&buf, uint16_t &val) { val = *(buf++) + (*(buf++) << 8); }
+void unpack(uint8_t *&buf, uint16_t &val) {
+  val = *(reinterpret_cast<uint16_t *>(buf));
+  buf += 2;
+}
 
 void unpack(uint8_t *&buf, uint32_t &val) {
-  val = *(buf++) + (*(buf++) << 8) + (*(buf++) << 16) + (*(buf++) << 24);
+  val = *(reinterpret_cast<uint32_t *>(buf));
+  buf += 4;
 }
 
 void unpack(uint8_t *&buf, int32_t &val) {
-  val = *(buf++) + (*(buf++) << 8) + (*(buf++) << 16) + (*(buf++) << 24);
+  val = *(reinterpret_cast<int32_t *>(buf));
+  buf += 4;
 }
 
 void unpack(uint8_t *&buf, OsTime &val) {
@@ -1238,11 +1240,11 @@ void unpack(uint8_t *&buf, OsTime &val) {
   val = OsTime(tick);
 }
 
-void unpack(uint8_t *&buf, OsDeltaTime &val) { 
+void unpack(uint8_t *&buf, OsDeltaTime &val) {
   int32_t tick;
   unpack(buf, tick);
   val = OsDeltaTime(tick);
- }
+}
 
 size_t Lmic::loadState(uint8_t *buffer) {
   uint8_t *orig = buffer;
