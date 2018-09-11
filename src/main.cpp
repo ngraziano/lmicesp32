@@ -207,7 +207,6 @@ void setup()
 
         LMIC.loadState(saveState);
         PRINT_DEBUG_1("sate loaded");
-    delay(4000);
 
     }
     else {
