@@ -168,7 +168,7 @@ void LmicEu868::handleCFList(const uint8_t *ptr) {
     if (newfreq) {
       setupChannel(chidx, newfreq, 0, -1);
 #if LMIC_DEBUG_LEVEL > 1
-      lmic_printf("%lu: Setup channel, idx=%d, freq=%lu\n", os_getTime(), chidx,
+      lmic_printf("%u: Setup channel, idx=%d, freq=%u\n", os_getTime().tick(), chidx,
                   newfreq);
 #endif
     }
@@ -207,12 +207,12 @@ void LmicEu868::updateTx(OsTime const &txbeg, uint8_t globalDutyRate,
   if (globalDutyRate != 0)
     globalDutyAvail = txbeg + OsDeltaTime(airtime.tick() << globalDutyRate);
 #if LMIC_DEBUG_LEVEL > 1
-  lmic_printf("%lu: Updating info for TX at %lu, airtime will be %lu. Setting "
-              "available time for band %d to %lu\n",
-              os_getTime(), txbeg, airtime, freq, band->avail);
+  lmic_printf("%u: Updating info for TX at %u, airtime will be %i. Setting "
+              "available time for band %d to %u\n",
+              os_getTime().tick(), txbeg.tick(), airtime.tick(), freq, band->avail.tick());
   if (globalDutyRate != 0)
-    lmic_printf("%lu: Updating global duty avail to %lu\n", os_getTime(),
-                globalDutyAvail);
+    lmic_printf("%u: Updating global duty avail to %u\n", os_getTime().tick(),
+                globalDutyAvail.tick());
 #endif
 }
 
@@ -228,8 +228,8 @@ OsTime LmicEu868::nextTx(OsTime const &now, dr_t datarate, uint8_t &txChnl) {
   uint8_t bmap = 0xF;
 #if LMIC_DEBUG_LEVEL > 1
   for (uint8_t bi = 0; bi < 4; bi++) {
-    PRINT_DEBUG_2("Band %d, available at %lu and last channel %d", bi,
-                  bands[bi].avail, bands[bi].lastchnl);
+    PRINT_DEBUG_2("Band %d, available at %u and last channel %d", bi,
+                  bands[bi].avail.tick(), bands[bi].lastchnl);
   }
 #endif
   do {
@@ -238,8 +238,8 @@ OsTime LmicEu868::nextTx(OsTime const &now, dr_t datarate, uint8_t &txChnl) {
     for (uint8_t bi = 0; bi < 4; bi++) {
       if ((bmap & (1 << bi)) && mintime - bands[bi].avail > 0) {
 #if LMIC_DEBUG_LEVEL > 1
-        lmic_printf("%lu: Considering band %d, which is available at %lu\n",
-                    os_getTime(), bi, bands[bi].avail);
+        lmic_printf("%u: Considering band %d, which is available at %u\n",
+                    os_getTime().tick(), bi, bands[bi].avail.tick());
 #endif
         band = bi;
         mintime = bands[band].avail;
@@ -250,8 +250,8 @@ OsTime LmicEu868::nextTx(OsTime const &now, dr_t datarate, uint8_t &txChnl) {
       PRINT_DEBUG_2("Error No band available.");
       OsTime resetTime = now + OsDeltaTime::from_sec(15 * 60);
       for (uint8_t bi = 0; bi < MAX_BANDS; bi++) {
-        PRINT_DEBUG_2("Band %i Reseting avail from %lu to %lu, lastchnl: %i.",
-                      bi, bands[bi].avail, resetTime, bands[bi].lastchnl);
+        PRINT_DEBUG_2("Band %i Reseting avail from %u to %u, lastchnl: %i.",
+                      bi, bands[bi].avail.tick(), resetTime.tick(), bands[bi].lastchnl);
         bands[bi].avail = resetTime;
       }
       // force band 0.
@@ -339,9 +339,9 @@ bool LmicEu868::nextJoinState(uint8_t &txChnl, uint8_t &txCnt, dr_t &datarate,
                 txend.tick());
 #if LMIC_DEBUG_LEVEL > 1
   if (failed)
-    lmic_printf("%lu: Join failed\n", os_getTime());
+    PRINT_DEBUG_2("Join failed");
   else
-    lmic_printf("%lu: Scheduling next join at %lu\n", os_getTime(), txend);
+    PRINT_DEBUG_2("Scheduling next join at %u\n",txend.tick());
 #endif
   // 1 - triggers EV_JOIN_FAILED event
   return !failed;

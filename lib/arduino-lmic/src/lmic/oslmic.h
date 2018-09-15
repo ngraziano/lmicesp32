@@ -131,7 +131,7 @@ inline int32_t table_get_s4(const int32_t *table, size_t index) {
 
 #if LMIC_DEBUG_LEVEL > 1
 #define PRINT_DEBUG_2(str, ...)                                                \
-  lmic_printf("%lu: " str "\n", os_getTime(), ##__VA_ARGS__)
+  lmic_printf("%u: " str "\n", os_getTime().tick(), ##__VA_ARGS__)
 #else
 #define PRINT_DEBUG_2(str, ...)
 #endif
@@ -198,7 +198,6 @@ private:
 
 protected:
   virtual void call() {
-    PRINT_DEBUG_2("Run func %p on class %p", funcTyped, refClass);
     (refClass.*funcTyped)();
   };
 
@@ -208,8 +207,8 @@ public:
       : OsJobBase(scheduler), refClass(ref){};
   void setCallbackFuture(osjobcbTyped_t cb) {
     funcTyped = cb;
-    PRINT_DEBUG_2("Job %p SetCallBack %p on class %p", this, funcTyped,
-                  refClass);
+//    PRINT_DEBUG_2("Job %p SetCallBack %p on class %p", this, funcTyped,
+//                  refClass);
   };
   void setCallbackRunnable(osjobcbTyped_t cb) {
     setCallbackFuture(cb);

@@ -170,6 +170,15 @@ static void writeReg(uint8_t addr, uint8_t data) {
   hal_spi(addr | 0x80);
   hal_spi(data);
   hal_pin_nss(1);
+
+#if LMIC_DEBUG_LEVEL > 1
+  hal_pin_nss(0);
+  hal_spi(addr & 0x7F);
+  uint8_t val = hal_spi(0x00);
+  PRINT_DEBUG_2("Reg %x, Write %x, Read:%x", addr, data, val);
+  hal_pin_nss(1);
+#endif
+
 }
 
 static uint8_t readReg(uint8_t addr) {
@@ -511,6 +520,10 @@ void Radio::init() {
   // some sanity checks, e.g., read version number
   uint8_t v = readReg(RegVersion);
   PRINT_DEBUG_1("Chip version : %i", v);
+
+
+
+
 #endif
 #ifdef CFG_sx1276_radio
   ASSERT(v == 0x12);

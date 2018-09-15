@@ -105,7 +105,7 @@ void onEvent(ev_t ev)
             PRINT_DEBUG_2("Received ack");
         if (LMIC.getDataLen())
         {
-            PRINT_DEBUG_2("Received %d  bytes of payload", LMIC.dataLen);
+            PRINT_DEBUG_2("Received %d  bytes of payload", LMIC.getDataLen());
         }
 
         PRINT_DEBUG_1("Save state");
@@ -198,7 +198,11 @@ void setup()
     LMIC.setArtEuiCallback(getArtEui);
     // set 5% clock error to allow easyer OTAA (even if timing is may not totally correct).
     LMIC.setClockError(MAX_CLOCK_ERROR * 5 / 100);
-    
+#if LMIC_DEBUG_LEVEL > 1
+    LMIC.setClockError(MAX_CLOCK_ERROR * 50 / 100);
+#endif
+
+
     // Use 51 as magic number at the end
     // maybe a CRC should be better
     // or detection of reset cause

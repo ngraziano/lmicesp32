@@ -924,24 +924,24 @@ void Lmic::engineUpdate() {
     bool jacc = ((opmode & (OP_JOINING | OP_REJOIN)) != 0 ? 1 : 0);
 #if LMIC_DEBUG_LEVEL > 1
     if (jacc)
-      lmic_printf("%lu: Uplink join pending\n", os_getTime());
+      PRINT_DEBUG_2("Uplink join pending");
     else
-      lmic_printf("%lu: Uplink data pending\n", os_getTime());
+      PRINT_DEBUG_2("Uplink data pending");
 #endif
     // Find next suitable channel and return availability time
     if ((opmode & OP_NEXTCHNL) != 0) {
       txbeg = txend = regionLMic.nextTx(now, datarate, txChnl);
       opmode &= ~OP_NEXTCHNL;
-      PRINT_DEBUG_2("Airtime available at %lu (channel duty limit)", txbeg);
+      PRINT_DEBUG_2("Airtime available at %u (channel duty limit)", txbeg.tick());
     } else {
       txbeg = txend;
-      PRINT_DEBUG_2("Airtime available at %lu (previously determined)", txbeg);
+      PRINT_DEBUG_2("Airtime available at %u (previously determined)", txbeg.tick());
     }
     // Delayed TX or waiting for duty cycle?
     if ((globalDutyRate != 0 || (opmode & OP_RNDTX) != 0) &&
         (txbeg - globalDutyAvail) < 0) {
       txbeg = globalDutyAvail;
-      PRINT_DEBUG_2("Airtime available at %lu (global duty limit)", txbeg);
+      PRINT_DEBUG_2("Airtime available at %u (global duty limit)", txbeg.tick());
     }
     // Earliest possible time vs overhead to setup radio
     if (txbeg - (now + TX_RAMPUP) < 0) {
@@ -992,7 +992,7 @@ void Lmic::engineUpdate() {
       radio.tx(freq, rps, txpow);
       return;
     }
-    PRINT_DEBUG_2("Uplink delayed until %lu", txbeg);
+    PRINT_DEBUG_2("Uplink delayed until %u", txbeg.tick());
     // Cannot yet TX
     if ((opmode & OP_TRACK) == 0)
       goto txdelay; // We don't track the beacon - nothing else to do - so wait
