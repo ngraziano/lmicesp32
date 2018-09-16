@@ -182,12 +182,23 @@ void setup()
     Serial.begin(BAUDRATE);
     Serial.println(F("Starting"));
 #endif
+    delay(2500);
 //    pinMode(25, OUTPUT);
     initOled();
     showState("Starting");
 
     // LMIC init
     os_init();
+
+    // read chip version at init 
+    hal_pin_nss(0);
+    hal_spi(0x42);
+    uint8_t val = hal_spi(0x00);
+    hal_pin_nss(1);
+    Serial.print("Manual read of chip version (should be 18) = ");
+    Serial.print(val);
+    delay(2500);
+
     // Reset the MAC state.
     LMIC.reset();
     uint8_t buf[16];
