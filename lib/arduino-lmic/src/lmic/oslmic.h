@@ -136,6 +136,14 @@ inline int32_t table_get_s4(const int32_t *table, size_t index) {
 #define PRINT_DEBUG_2(str, ...)
 #endif
 
+#if LMIC_DEBUG_LEVEL > 2
+#define PRINT_DEBUG_3(str, ...)                                                \
+  lmic_printf("%u: " str "\n", os_getTime().tick(), ##__VA_ARGS__)
+#else
+#define PRINT_DEBUG_3(str, ...)
+#endif
+
+
 class OsJobBase;
 class OsJob;
 
