@@ -38,7 +38,7 @@ void OsJobBase::setRunnable() {
   *pnext = this;
   hal_enableIRQs();
 
-  PRINT_DEBUG_2("Scheduled job %p ASAP\n", this);
+  PRINT_DEBUG_2("Scheduled job %p ASAP", this);
 }
 
 bool OsJobBase::unlinkjob(OsJobBase **pnext, OsJobBase *job) {
@@ -58,7 +58,7 @@ void OsJobBase::clearCallback() {
              unlinkjob(&this->scheduler->runnablejobs, this);
   hal_enableIRQs();
   if (res) {
-    PRINT_DEBUG_2("Cleared job %p\n", this);
+    PRINT_DEBUG_2("Cleared job %p", this);
   }
 }
 
@@ -88,7 +88,7 @@ void OsJobBase::setTimed(OsTime const &time) {
   }
   *pnext = this;
   hal_enableIRQs();
-  PRINT_DEBUG_2("Scheduled job %p, atRun %lu\n", this, time);
+  PRINT_DEBUG_2("Scheduled job %p, atRun %u", this, time.tick());
 }
 
 void OsJob::call() { func(); }
@@ -122,8 +122,8 @@ OsDeltaTime OsScheduler::runloopOnce() {
   // we would otherwise get for running SPI transfers inside ISRs
   hal_io_check();
   if (j) { // run job callback
-    PRINT_DEBUG_2("Running job %p, deadline %lu\n", j,
-                  has_deadline ? j->deadline : 0);
+    PRINT_DEBUG_2("Running job %p, deadline %u", j,
+                  has_deadline ? j->deadline.tick() : 0);
     j->call();
   }
   if (runnablejobs) {

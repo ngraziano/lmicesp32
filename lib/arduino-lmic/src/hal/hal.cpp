@@ -54,9 +54,11 @@ void hal_pin_rst(uint8_t val) {
     return;
 
   if (val == 0 || val == 1) { // drive pin
+    PRINT_DEBUG_2("Set reset pin %i to %i",lmic_pins.rst, val);
     pinMode(lmic_pins.rst, OUTPUT);
     digitalWrite(lmic_pins.rst, val);
   } else { // keep pin floating
+    PRINT_DEBUG_2("Set reset pin %i to float",lmic_pins.rst);
     pinMode(lmic_pins.rst, INPUT);
   }
 }

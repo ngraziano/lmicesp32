@@ -519,10 +519,8 @@ void Radio::init() {
 #if !defined(CFG_noassert) || LMIC_DEBUG_LEVEL > 0
   // some sanity checks, e.g., read version number
   uint8_t v = readReg(RegVersion);
-  PRINT_DEBUG_1("Chip version : %i", v);
 
-
-
+  PRINT_DEBUG_1("Chip version : %x", v);
 
 #endif
 #ifdef CFG_sx1276_radio
@@ -532,35 +530,6 @@ void Radio::init() {
 #else
 #error Missing CFG_sx1272_radio/CFG_sx1276_radio
 #endif
-
-#ifdef CFG_sx1276mb1_board
-  // chain calibration
-  writeReg(RegPaConfig, 0);
-
-  // Launch Rx chain calibration for LF band
-  writeReg(FSKRegImageCal,
-           (readReg(FSKRegImageCal) & RF_IMAGECAL_IMAGECAL_MASK) |
-               RF_IMAGECAL_IMAGECAL_START);
-  while ((readReg(FSKRegImageCal) & RF_IMAGECAL_IMAGECAL_RUNNING) ==
-         RF_IMAGECAL_IMAGECAL_RUNNING) {
-    ;
-  }
-
-  // Sets a Frequency in HF band
-  uint32_t frf = 868000000;
-  writeReg(RegFrfMsb, (uint8_t)(frf >> 16));
-  writeReg(RegFrfMid, (uint8_t)(frf >> 8));
-  writeReg(RegFrfLsb, (uint8_t)(frf >> 0));
-
-  // Launch Rx chain calibration for HF band
-  writeReg(FSKRegImageCal,
-           (readReg(FSKRegImageCal) & RF_IMAGECAL_IMAGECAL_MASK) |
-               RF_IMAGECAL_IMAGECAL_START);
-  while ((readReg(FSKRegImageCal) & RF_IMAGECAL_IMAGECAL_RUNNING) ==
-         RF_IMAGECAL_IMAGECAL_RUNNING) {
-    ;
-  }
-#endif /* CFG_sx1276mb1_board */
 
   opmode(OPMODE_SLEEP);
   hal_allow_sleep();
@@ -620,7 +589,7 @@ void Radio::irq_handler(uint8_t dio, OsTime const &trigger) {
   if ((readReg(RegOpMode) & OPMODE_LORA) != 0) { // LORA modem
     uint8_t flags = readReg(LORARegIrqFlags);
 
-    PRINT_DEBUG_2("irq: dio: 0x%x flags: 0x%x\n", dio, flags);
+    PRINT_DEBUG_2("irq: dio: 0x%x flags: 0x%x", dio, flags);
 
     if (flags & IRQ_LORA_TXDONE_MASK) {
       // save exact tx time
