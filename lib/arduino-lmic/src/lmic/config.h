@@ -6,7 +6,9 @@
 // compiler commandline, use this file instead.
 
 #define CFG_eu868 1
+// us915 need work on saveState.
 //#define CFG_us915 1
+
 // This is the SX1272/SX1273 radio, which is also used on the HopeRF
 // RFM92 boards.
 //#define CFG_sx1272_radio 1
@@ -22,10 +24,8 @@
 
 // Set this to 1 to enable some basic debug output (using printf) about
 // RF settings used during transmission and reception. Set to 2 to
-// enable more verbose output. Make sure that printf is actually
-// configured (e.g. on AVR it is not by default), otherwise using it can
-// cause crashing.
-#define LMIC_DEBUG_LEVEL 2
+// enable more verbose output.
+#define LMIC_DEBUG_LEVEL 1
 
 // Enable this to allow using printf() to print to the given serial port
 // (or any other Print object). This can be easy for debugging. The
