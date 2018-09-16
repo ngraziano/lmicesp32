@@ -167,10 +167,8 @@ void LmicEu868::handleCFList(const uint8_t *ptr) {
     uint32_t newfreq = convFreq(ptr);
     if (newfreq) {
       setupChannel(chidx, newfreq, 0, -1);
-#if LMIC_DEBUG_LEVEL > 1
-      lmic_printf("%u: Setup channel, idx=%d, freq=%u\n", os_getTime().tick(), chidx,
-                  newfreq);
-#endif
+
+      PRINT_DEBUG_1("Setup channel, idx=%d, freq=%u", chidx, newfreq);
     }
   }
 }
@@ -209,7 +207,8 @@ void LmicEu868::updateTx(OsTime const &txbeg, uint8_t globalDutyRate,
 #if LMIC_DEBUG_LEVEL > 1
   lmic_printf("%u: Updating info for TX at %u, airtime will be %i. Setting "
               "available time for band %d to %u\n",
-              os_getTime().tick(), txbeg.tick(), airtime.tick(), freq, band->avail.tick());
+              os_getTime().tick(), txbeg.tick(), airtime.tick(), freq,
+              band->avail.tick());
   if (globalDutyRate != 0)
     lmic_printf("%u: Updating global duty avail to %u\n", os_getTime().tick(),
                 globalDutyAvail.tick());
@@ -224,6 +223,11 @@ uint8_t LmicEu868::getBand(uint8_t channel) const {
   return channels[channel].freq & 0x3;
 }
 
+/**
+ * Set the next txChannel in txChnl 
+ * go throught all band take the first available
+ * with a channel active with the selected datarate.
+ */
 OsTime LmicEu868::nextTx(OsTime const &now, dr_t datarate, uint8_t &txChnl) {
   uint8_t bmap = 0xF;
 #if LMIC_DEBUG_LEVEL > 1
@@ -235,12 +239,10 @@ OsTime LmicEu868::nextTx(OsTime const &now, dr_t datarate, uint8_t &txChnl) {
   do {
     OsTime mintime = now + /*8h*/ OsDeltaTime::from_sec(28800);
     uint8_t band = 0xFF;
-    for (uint8_t bi = 0; bi < 4; bi++) {
+    for (uint8_t bi = 0; bi < MAX_BANDS; bi++) {
       if ((bmap & (1 << bi)) && mintime - bands[bi].avail > 0) {
-#if LMIC_DEBUG_LEVEL > 1
-        lmic_printf("%u: Considering band %d, which is available at %u\n",
-                    os_getTime().tick(), bi, bands[bi].avail.tick());
-#endif
+        PRINT_DEBUG_2("Considering band %d, which is available at %u\n", bi,
+                      bands[bi].avail.tick());
         band = bi;
         mintime = bands[band].avail;
       }
@@ -250,8 +252,9 @@ OsTime LmicEu868::nextTx(OsTime const &now, dr_t datarate, uint8_t &txChnl) {
       PRINT_DEBUG_2("Error No band available.");
       OsTime resetTime = now + OsDeltaTime::from_sec(15 * 60);
       for (uint8_t bi = 0; bi < MAX_BANDS; bi++) {
-        PRINT_DEBUG_2("Band %i Reseting avail from %u to %u, lastchnl: %i.",
-                      bi, bands[bi].avail.tick(), resetTime.tick(), bands[bi].lastchnl);
+        PRINT_DEBUG_2("Band %i Reseting avail from %u to %u, lastchnl: %i.", bi,
+                      bands[bi].avail.tick(), resetTime.tick(),
+                      bands[bi].lastchnl);
         bands[bi].avail = resetTime;
       }
       // force band 0.
@@ -302,8 +305,8 @@ void LmicEu868::initJoinLoop(uint8_t &txChnl, int8_t &adrTxPow, dr_t &newDr,
   initDefaultChannels(true);
   ASSERT((opmode & OP_NEXTCHNL) == 0);
   txend = bands[BAND_MILLI].avail + OsDeltaTime::rnd_delay(8);
-  PRINT_DEBUG_1("Init Join loop : avail=%u txend=%u", bands[BAND_MILLI].avail.tick(),
-                txend.tick());
+  PRINT_DEBUG_1("Init Join loop : avail=%u txend=%u",
+                bands[BAND_MILLI].avail.tick(), txend.tick());
 }
 
 bool LmicEu868::nextJoinState(uint8_t &txChnl, uint8_t &txCnt, dr_t &datarate,
@@ -335,13 +338,12 @@ bool LmicEu868::nextJoinState(uint8_t &txChnl, uint8_t &txCnt, dr_t &datarate,
                   // Otherwise: randomize join (street lamp case):
                   // SF12:255, SF11:127, .., SF7:8secs
                   : DNW2_SAFETY_ZONE + OsDeltaTime::rnd_delay(255 >> datarate));
-  PRINT_DEBUG_1(" Next available : %i , Choosen %i", time.tick(),
-                txend.tick());
+  PRINT_DEBUG_1(" Next available : %i , Choosen %i", time.tick(), txend.tick());
 #if LMIC_DEBUG_LEVEL > 1
   if (failed)
     PRINT_DEBUG_2("Join failed");
   else
-    PRINT_DEBUG_2("Scheduling next join at %u\n",txend.tick());
+    PRINT_DEBUG_2("Scheduling next join at %u", txend.tick());
 #endif
   // 1 - triggers EV_JOIN_FAILED event
   return !failed;

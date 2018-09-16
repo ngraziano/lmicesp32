@@ -25,7 +25,7 @@
 // Set this to 1 to enable some basic debug output (using printf) about
 // RF settings used during transmission and reception. Set to 2 to
 // enable more verbose output.
-#define LMIC_DEBUG_LEVEL 1
+#define LMIC_DEBUG_LEVEL 3
 
 // Enable this to allow using printf() to print to the given serial port
 // (or any other Print object). This can be easy for debugging. The
