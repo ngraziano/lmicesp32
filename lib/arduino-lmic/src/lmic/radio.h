@@ -15,7 +15,6 @@ public:
   void rxon(uint32_t freq, rps_t rps, uint8_t rxsyms, OsTime const &rxtime);
 
   void irq_handler(uint8_t dio, OsTime const &trigger);
-  void init_random(uint8_t randbuf[16]);
 
   uint8_t rssi();
 

@@ -538,30 +538,6 @@ void Radio::init() {
   hal_enableIRQs();
 }
 
-// get random seed from wideband noise rssi
-void Radio::init_random(uint8_t randbuf[16]) {
-  hal_disableIRQs();
-
-  // seed 15-byte randomness via noise rssi
-  // freq and rps not used
-  rps_t dumyrps;
-  rxlora(RXMODE_RSSI, 0, dumyrps, 1, hal_ticks());
-  while ((readReg(RegOpMode) & OPMODE_MASK) != OPMODE_RX)
-    ; // continuous rx
-  for (uint8_t i = 1; i < 16; i++) {
-    for (uint8_t j = 0; j < 8; j++) {
-      uint8_t b; // wait for two non-identical subsequent least-significant bits
-      while ((b = readReg(LORARegRssiWideband) & 0x01) ==
-             (readReg(LORARegRssiWideband) & 0x01))
-        ;
-      randbuf[i] = (randbuf[i] << 1) | b;
-    }
-  }
-  randbuf[0] = 16; // set initial index
-  opmode(OPMODE_SLEEP);
-  hal_enableIRQs();
-}
-
 uint8_t Radio::rssi() {
   hal_disableIRQs();
   uint8_t r = readReg(LORARegRssiValue);

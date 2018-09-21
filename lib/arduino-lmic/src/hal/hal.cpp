@@ -20,8 +20,6 @@
 // I/O
 
 OsTime last_int_trigger;
-// (initialized by init() with radio RSSI, used by rand1())
-uint8_t randbuf[16];
 
 void hal_store_trigger() { last_int_trigger = os_getTime(); }
 
