@@ -435,7 +435,7 @@ public:
   void setArtEuiCallback(keyCallback_t callback) { artEuiCallBack = callback; };
 
   // for radio to wakeup processing.
-  void nextTask();
+  void irq_handler(uint8_t dio, OsTime const &trigger);
 
   size_t saveState(uint8_t *buffer);
   size_t loadState(uint8_t *buffer);
