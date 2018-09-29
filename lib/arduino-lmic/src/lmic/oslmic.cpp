@@ -91,7 +91,7 @@ void OsJobBase::setTimed(OsTime const &time) {
   PRINT_DEBUG_2("Scheduled job %p, atRun %u", this, time.tick());
 }
 
-void OsJob::call() { func(); }
+void OsJob::call() const { func(); }
 
 OsDeltaTime OsScheduler::runloopOnce() {
 #if LMIC_DEBUG_LEVEL > 1

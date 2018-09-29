@@ -58,14 +58,14 @@ void AesLora::setApplicationSessionKey(uint8_t key[16]) {
 }
 
 // Get B0 value in buf
-void AesLora::micB0(uint32_t devaddr, uint32_t seqno, uint8_t dndir,
-                    uint8_t len, uint8_t buf[AES_BLCK_SIZE]) {
+void AesLora::micB0(uint32_t devaddr, uint32_t seqno, PktDir dndir, uint8_t len,
+                uint8_t buf[AES_BLCK_SIZE]) {
   buf[0] = 0x49;
   buf[1] = 0;
   buf[2] = 0;
   buf[3] = 0;
   buf[4] = 0;
-  buf[5] = dndir;
+  buf[5] = static_cast<uint8_t>(dndir);
   wlsbf4(buf + 6, devaddr);
   wlsbf4(buf + 10, seqno);
   buf[14] = 0;
@@ -76,8 +76,8 @@ void AesLora::micB0(uint32_t devaddr, uint32_t seqno, uint8_t dndir,
  * Verify MIC
  * len : total length (MIC included)
  */
-bool AesLora::verifyMic(uint32_t devaddr, uint32_t seqno, uint8_t dndir,
-                        uint8_t *pdu, uint8_t len) {
+bool AesLora::verifyMic(uint32_t devaddr, uint32_t seqno, PktDir dndir,
+                    uint8_t *pdu, uint8_t len) {
   uint8_t buf[AES_BLCK_SIZE];
   uint8_t lenWithoutMic = len - MIC_LEN;
   micB0(devaddr, seqno, dndir, lenWithoutMic, buf);
@@ -89,8 +89,8 @@ bool AesLora::verifyMic(uint32_t devaddr, uint32_t seqno, uint8_t dndir,
  * Append MIC
  * len : total length (MIC included)
  */
-void AesLora::appendMic(uint32_t devaddr, uint32_t seqno, uint8_t dndir,
-                        uint8_t *pdu, uint8_t len) {
+void AesLora::appendMic(uint32_t devaddr, uint32_t seqno, PktDir dndir,
+                    uint8_t *pdu, uint8_t len) {
   uint8_t buf[AES_BLCK_SIZE];
   uint8_t lenWithoutMic = len - MIC_LEN;
   micB0(devaddr, seqno, dndir, lenWithoutMic, buf);
@@ -132,9 +132,9 @@ void AesLora::encrypt(uint8_t *pdu, uint8_t len) {
 /**
  *  Encrypt data frame payload.
  */
-void AesLora::framePayloadEncryption(uint8_t port, uint32_t devaddr,
-                                     uint32_t seqno, uint8_t dndir,
-                                     uint8_t *payload, uint8_t len) {
+void AesLora::framePayloadEncryption(uint8_t port, uint32_t devaddr, uint32_t seqno,
+                                 PktDir dndir, uint8_t *payload,
+                                 uint8_t len) {
   auto ctx = port == 0 ? &nwkSCtx : &appSCtx;
   // Generate
   uint8_t blockAi[AES_BLCK_SIZE];
@@ -143,7 +143,7 @@ void AesLora::framePayloadEncryption(uint8_t port, uint32_t devaddr,
   blockAi[2] = 0;
   blockAi[3] = 0;
   blockAi[4] = 0;
-  blockAi[5] = dndir; // direction (0=up 1=down)
+  blockAi[5] = static_cast<uint8_t>(dndir); // direction (0=up 1=down)
   wlsbf4(blockAi + 6, devaddr);
   wlsbf4(blockAi + 10, seqno);
   blockAi[14] = 0;
