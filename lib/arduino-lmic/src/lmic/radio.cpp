@@ -565,7 +565,7 @@ void Radio::irq_handler(OsJobBase &nextJob, uint8_t dio,
 
     if (flags & IRQ_LORA_TXDONE_MASK) {
       // save exact tx time
-      PRINT_DEBUG_1("End TX  %li", txEnd);
+      PRINT_DEBUG_1("End TX  %i", txEnd.tick());
       txEnd = now; // - OsDeltaTime::from_us(43); // TXDONE FIXUP
       // forbid sleep to keep precise time counting.
       // hal_forbid_sleep();
@@ -601,7 +601,7 @@ void Radio::irq_handler(OsJobBase &nextJob, uint8_t dio,
       //    readReg(LORARegPktRssiValue) - 125 + 64; // RSSI [dBm] (-196...+63)
       hal_allow_sleep();
     } else if (flags & IRQ_LORA_RXTOUT_MASK) {
-      PRINT_DEBUG_1("RX timeout  %li", now);
+      PRINT_DEBUG_1("RX timeout  %i", now.tick());
 
       // indicate timeout
       frameLength = 0;
