@@ -552,11 +552,13 @@ static CONST_TABLE(int32_t, LORA_RXDONE_FIXUP)[] = {
 void Radio::irq_handler(OsJobBase &nextJob, uint8_t dio,
                         OsTime const &trigger) {
   OsTime now = os_getTime();
+  /* Not use in ESP32 version
   if (now - trigger < OsDeltaTime::from_sec(1)) {
     now = trigger;
   } else {
     PRINT_DEBUG_1("Not using interupt trigger %u", trigger.tick());
   }
+  */
 
   if ((readReg(RegOpMode) & OPMODE_LORA) != 0) { // LORA modem
     uint8_t flags = readReg(LORARegIrqFlags);
