@@ -1,5 +1,10 @@
 # LORAWAN Librairie for Arduino and SX1276/2 lora chip
 
+**This library is not maintain anymore, please have a look to https://github.com/ngraziano/LMICPP-Arduino and example : `examples/esp32-deepsleep`** 
+
+
+## Introduction
+
 * Based on LMIC librairy.
 * Modified to get C++ style.
 * Only class A device (no class B)
